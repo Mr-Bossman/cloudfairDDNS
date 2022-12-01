@@ -8,8 +8,12 @@ let old_ip = undefined;
 const periotic = async () => {
 	const new_ip = await get_ip();
 	if (new_ip !== old_ip) {
-		zones.forEach(zone => {
-			update_records(process.env.BEARER, zone, old_ip, new_ip);
+		process.env.BEARER.split(':').forEach(async bearer => {
+			let availZones = await get_records(bearer);
+			zones.forEach(zone => {
+				if (availZones.includes(zone))
+					update_records(bearer, zone, old_ip, new_ip);
+			});
 		});
 		old_ip = new_ip;
 	}
@@ -22,10 +26,26 @@ const get_ip = async () => {
 	})).data;
 }
 
+const get_records = async (bearer) => {
+	return axios({
+		headers: {
+			'Authorization': `Bearer ${bearer}`,
+			'Accept-Encoding': 'utf-8'
+		},
+		url: 'https://api.cloudflare.com/client/v4/zones',
+		method: 'GET',
+	}).then((res) => {
+		return res.data.result.map(zone => zone.id);
+	});
+}
+
 const update_records = (bearer, zone, old_ip, new_ip) => {
 	axios(
 		{
-			headers: { 'Authorization': `Bearer ${bearer}` },
+			headers: {
+				'Authorization': `Bearer ${bearer}`,
+				'Accept-Encoding': 'utf-8'
+			},
 			url: `https://api.cloudflare.com/client/v4/zones/${zone}/dns_records`,
 			method: 'GET'
 		}).then((res) => {
