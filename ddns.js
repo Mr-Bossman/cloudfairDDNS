@@ -8,7 +8,7 @@ let old_ip = undefined;
 const periotic = async () => {
 	const new_ip = await get_ip();
 	if (new_ip !== old_ip) {
-		process.env.BEARER.split(':').forEach(async bearer => {
+		await process.env.BEARER.split(':').forEach(async bearer => {
 			let availZones = await get_records(bearer);
 			zones.forEach(zone => {
 				if (availZones.includes(zone))
