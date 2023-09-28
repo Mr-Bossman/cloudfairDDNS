@@ -7,16 +7,17 @@ let old_ip = undefined;
 
 const periotic = async () => {
 	const new_ip = await get_ip();
-	if (new_ip !== old_ip) {
-		await process.env.BEARER.split(':').forEach(async bearer => {
-			let availZones = await get_records(bearer);
-			zones.forEach(zone => {
-				if (availZones.includes(zone))
-					update_records(bearer, zone, old_ip, new_ip);
-			});
-		});
-		old_ip = new_ip;
-	}
+	if (new_ip === old_ip)
+		return;
+
+	const tasks = process.env.BEARER.split(':').map( async bearer => {
+		const availZones = await get_records(bearer);
+		zones.filter((zone) => availZones.includes(zone))
+		.forEach((zone) => update_records(bearer, zone, old_ip, new_ip));
+	});
+
+	await Promise.all(tasks);
+	old_ip = new_ip;
 };
 
 const get_ip = async () => {
@@ -65,3 +66,4 @@ const update_records = (bearer, zone, old_ip, new_ip) => {
 }
 
 setInterval(periotic, 600 * 1000); /* Ten min */
+periotic()
